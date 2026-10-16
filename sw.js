@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'guanwu-guide-v1';
+const CACHE_NAME = 'guanwu-guide-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -32,21 +32,46 @@ const urlsToCache = [
   './audio/story_weng.mp3'
 ];
 
-// 安裝時，把上述檔案全部塞進手機快取
+// 1. 安裝階段：強制將 urlsToCache 裡的所有檔案一次性下載到手機裡
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+      .then(cache => {
+        console.log('開始強制預先下載所有離線檔案...');
+        return cache.addAll(urlsToCache);
+      })
+      .then(() => self.skipWaiting()) // 強制立刻接管網頁，不需等待重整
   );
 });
 
-// 當遊客手機斷網時，攔截請求並從快取裡拿檔案給他們
+// 2. 啟用階段：清除舊版快取，避免佔用手機空間
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('清除舊版快取:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  return self.clients.claim();
+});
+
+// 3. 攔截請求階段 (Cache-First 策略)：播放聲音時，優先從快取拿檔案
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // 如果快取有資料就給快取，沒有就嘗試連網抓
-        return response || fetch(event.request);
+        // 如果快取裡面有這個檔案，直接秒速回傳（這就是斷網能播的關鍵）
+        if (response) {
+          return response;
+        }
+        // 如果快取真的沒有，才去網路上抓
+        return fetch(event.request);
       })
   );
 });
