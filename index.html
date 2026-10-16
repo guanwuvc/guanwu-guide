@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>觀霧林業的古往今來｜離線導覽</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root { --forest-green: #2d5a27; --wood-brown: #8b5a2b; --bg-color: #f4f1ea; --highlight: #e8f0e6; }
+    body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: var(--bg-color); color: #333; margin: 0; padding: 15px; line-height: 1.7; }
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { color: var(--forest-green); font-size: 22px; border-bottom: 2px solid var(--wood-brown); padding-bottom: 8px; display: inline-block; }
+    
+    /* 卡片與手風琴收合設計 */
+    .card { background: #fff; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--forest-green); overflow: hidden; }
+    .card-header { padding: 18px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #fff; transition: background 0.2s; }
+    .card-header:active { background: #f9f9f9; }
+    .card-header h2 { margin: 0; color: var(--wood-brown); font-size: 18px; }
+    .toggle-icon { font-size: 14px; color: #888; transition: transform 0.3s ease; }
+    
+    /* 展開時的狀態 */
+    .card.active .toggle-icon { transform: rotate(180deg); }
+    .card.active .card-body { display: block; }
+    
+    /* 內容區預設隱藏 */
+    .card-body { display: none; padding: 0 20px 20px 20px; border-top: 1px solid #eee; }
+    
+    /* 主語音播放器（置頂） */
+    .main-audio { width: 100%; margin: 15px 0; border-radius: 30px; }
+
+    /* 站點認路照片 */
+    .station-img { 
+      width: 100%; 
+      border-radius: 8px; 
+      margin: 15px 0; 
+      object-fit: cover; 
+      border: 1px solid #eee;
+    }
+    
+    /* 職人故事區塊 */
+    .story-item { background: #fdfdfd; border: 1px dashed #ccc; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; }
+    .story-item p { margin: 8px 0 10px 0; font-size: 14px; }
+    .story-audio { width: 100%; height: 40px; }
+    
+    /* 其他細節樣式 */
+    .meta-info { font-size: 13px; color: #555; background: #eee; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 15px; }
+    .question-box { background: var(--highlight); color: var(--forest-green); padding: 12px 15px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid var(--forest-green); }
+    .section-title { font-weight: bold; color: var(--wood-brown); margin: 15px 0 5px 0; font-size: 16px; }
+    
+    details { background: #fafafa; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; padding: 10px; }
+    summary { font-weight: bold; color: var(--wood-brown); cursor: pointer; outline: none; }
+    .details-content { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc; font-size: 14px; color: #555; }
+    #status { text-align: center; font-size: 12px; color: #888; margin-bottom: 15px; }
+  </style>
+</head>
+<body>
+
+  <header style="text-align: center; margin-bottom: 15px;">
+    <!-- 使用 poster.webp 作為主視覺海報 -->
+    <img src="./images/poster.webp" alt="觀霧林業的古往今來" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); display: block;">
+    
+    <!-- 隱藏狀態文字，不影響 app.js 邏輯 -->
+    <div id="status" style="display: none;"></div>
+  </header>
+
+  <div id="app-container"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "觀霧林業的古往今來",
+  "short_name": "觀霧導覽",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#2d5a27",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/289/289058.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
