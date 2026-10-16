@@ -61,17 +61,47 @@ self.addEventListener('activate', event => {
   return self.clients.claim();
 });
 
-// 3. 攔截請求階段 (Cache-First 策略)：播放聲音時，優先從快取拿檔案
+// 3. 攔截請求階段：加入音檔 Range 請求的破解處理
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // 如果快取裡面有這個檔案，直接秒速回傳（這就是斷網能播的關鍵）
-        if (response) {
-          return response;
-        }
-        // 如果快取真的沒有，才去網路上抓
-        return fetch(event.request);
+  const request = event.request;
+
+  // 如果是帶有 Range 的請求 (通常是 audio 或 video 標籤發出的)
+  if (request.headers.has('range')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(request.url).then(cachedResponse => {
+          if (!cachedResponse) {
+            return fetch(request);
+          }
+          // 將快取檔案轉為 ArrayBuffer 來進行手動分段切割
+          return cachedResponse.arrayBuffer().then(arrayBuffer => {
+            const bytes = request.headers.get('range').match(/^bytes\=(\d+)\-(\d*)$/);
+            const pos = Number(bytes[1]);
+            const end = bytes[2] ? Number(bytes[2]) : arrayBuffer.byteLength - 1;
+            const chunk = arrayBuffer.slice(pos, end + 1);
+
+            // 回傳 206 Partial Content 狀態，完美欺騙瀏覽器播放器
+            return new Response(chunk, {
+              status: 206,
+              statusText: 'Partial Content',
+              headers: new Headers({
+                'Content-Range': `bytes ${pos}-${end}/${arrayBuffer.byteLength}`,
+                'Content-Length': chunk.byteLength,
+                'Content-Type': cachedResponse.headers.get('Content-Type') || 'audio/mpeg',
+                'Accept-Ranges': 'bytes'
+              })
+            });
+          });
+        });
       })
+    );
+    return;
+  }
+
+  // 一般檔案 (HTML, CSS, JS, 圖片) 的正常 Cache-First 策略
+  event.respondWith(
+    caches.match(request).then(response => {
+      return response || fetch(request);
+    })
   );
 });
