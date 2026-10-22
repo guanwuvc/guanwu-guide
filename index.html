@@ -67,7 +67,7 @@
     .install-desc { font-size: 14px; color: #555; margin: 0 0 12px 0; }
     .install-step { margin-top: 12px; }
     .step-label { font-weight: bold; color: var(--forest-green); font-size: 15px; margin-bottom: 6px; }
-    .step-label span { font-weight: normal; color: #555; font-size: 14px; }
+    .cache-text { font-size: 14px; color: #555; margin-bottom: 6px; }
     .progress { height: 10px; background: #e5e1d8; border-radius: 5px; overflow: hidden; }
     .progress-bar { height: 100%; width: 0; background: var(--forest-green); transition: width 0.3s ease; }
     /* 輕巧空心按鈕（安裝、問卷、說明視窗共用） */
@@ -77,9 +77,13 @@
     .install-note { font-size: 14px; color: #555; margin-top: 8px; }
     .install-done { color: var(--forest-green); font-weight: bold; }
     .install-error { color: #b03a2e; font-weight: bold; }
-    .install-faq { margin-top: 14px; }
-    .install-faq summary { font-size: 14px; }
-    .install-faq .details-content { line-height: 1.8; }
+    /* 「不想安裝？」說明：灰色小字＋小箭頭，無外框 */
+    .install-faq { margin-top: 12px; background: none; border: 0; padding: 0; }
+    .install-faq summary { font-size: 13px; font-weight: normal; color: #888; list-style: none; }
+    .install-faq summary::-webkit-details-marker { display: none; }
+    .install-faq summary::before { content: "▸"; display: inline-block; margin-right: 4px; transition: transform 0.2s; }
+    .install-faq[open] summary::before { transform: rotate(90deg); }
+    .install-faq .details-content { margin-top: 6px; padding-top: 0; border-top: 0; font-size: 13px; line-height: 1.8; }
 
     /* 刪除離線資料（頁面最下方，低調處理） */
     .cleanup-box { text-align: center; font-size: 13px; color: #777; margin: 30px 0 20px 0; padding-top: 16px; border-top: 1px solid #ddd; }
@@ -112,7 +116,8 @@
       <button id="install-btn" class="install-btn" type="button">安裝到手機桌面</button>
       <div id="install-text" class="install-note"></div>
       <div class="install-step">
-        <div class="step-label">離線內容　<span id="cache-text">準備中…</span></div>
+        <div class="step-label">離線內容</div>
+        <div id="cache-text" class="cache-text">準備中…</div>
         <div class="progress"><div id="cache-bar" class="progress-bar"></div></div>
       </div>
       <details class="install-faq">
