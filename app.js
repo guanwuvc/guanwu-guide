@@ -201,9 +201,28 @@ function setupInstall() {
     if (isOfflineRemoved()) {
       // 遊客按過「刪除離線資料」：不自動下載，等他按「重新下載」
       showRemoved();
+    } else if (isInApp) {
+      // LINE、Facebook 等 App 內瀏覽器的資料跟手機瀏覽器分開，自動下載會多存一份
+      // 已經下載過的（有註冊紀錄）照常檢查；沒有的就請遊客改用瀏覽器
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) {
+          startDownload();
+        } else {
+          showInAppNotice();
+        }
+      });
     } else {
       startDownload();
     }
+  }
+
+  function showInAppNotice() {
+    cacheText.innerHTML = '在 App 內開啟不會自動下載，請按上方按鈕改用瀏覽器開啟。<a href="#" id="cache-inapp">仍要在這裡下載</a>';
+    document.getElementById('cache-inapp').addEventListener('click', e => {
+      e.preventDefault();
+      cacheText.textContent = '下載中…';
+      startDownload();
+    });
   }
 
   function startDownload() {
@@ -277,7 +296,7 @@ function setupInstall() {
       setOfflineRemoved(true);
       showRemoved();
       cleanupText.innerHTML = '<span class="install-done">✅ 已刪除離線資料。</span>' +
-        (installed ? '<br>主畫面的「觀霧導覽」圖示，請長按後選「移除」。' : '');
+        (installed ? '<br>手機上的「觀霧導覽」App，請長按圖示後選「解除安裝」。' : '');
     } catch (e) {
       cleanupText.innerHTML = '<span class="install-error">❌ 刪除失敗，請重新整理網頁再試一次。</span>';
     }

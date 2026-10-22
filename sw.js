@@ -1,6 +1,6 @@
 // sw.js
 // ⚠️ 每次修改任何檔案（文字、圖片、音檔）後，都要把版本號 +1，手機才會下載新版
-const CACHE_NAME = 'guanwu-guide-v15';
+const CACHE_NAME = 'guanwu-guide-v17';
 const urlsToCache = [
   './',
   './index.html',
@@ -42,11 +42,11 @@ async function broadcast(message) {
   clients.forEach(client => client.postMessage(message));
 }
 
-// 下載單一檔案，失敗時自動重試一次；cache: 'reload' 確保拿到伺服器上的最新版
+// 下載單一檔案，失敗時自動重試一次；cache: 'no-store' 直接向伺服器拿最新版，且不在瀏覽器一般快取多存一份
 async function fetchWithRetry(url) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await fetch(url, { cache: 'reload' });
+      const response = await fetch(url, { cache: 'no-store' });
       if (response.ok) return response;
     } catch (err) {
       // 網路錯誤，進入下一次重試
