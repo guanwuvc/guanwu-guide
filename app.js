@@ -138,8 +138,19 @@ function setupInstall() {
   const isInApp = isLine || /FBAN|FBAV|Instagram|MicroMessenger/i.test(ua);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
+  const INSTALLED_KEY = 'guanwu-installed';
+  function getInstalledFlag() {
+    try { return localStorage.getItem(INSTALLED_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setInstalledFlag(value) {
+    try {
+      if (value) localStorage.setItem(INSTALLED_KEY, '1');
+      else localStorage.removeItem(INSTALLED_KEY);
+    } catch (e) {}
+  }
+
   let cacheReady = false;
-  let installed = isStandalone;
+  let installed = isStandalone || getInstalledFlag();
   let deferredPrompt = null;
 
   // 已安裝且已下載完成：收起面板，只留一行狀態
@@ -274,13 +285,21 @@ function setupInstall() {
 
   // --- ② 加入主畫面 ---
   // Android Chrome / Edge / Samsung 會發出 beforeinstallprompt，可直接跳出安裝視窗
+  // 瀏覽器只有在「還沒安裝」時才會發出這個事件：代表圖示已被移除，恢復安裝按鈕
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
+    if (installed && !isStandalone) {
+      installed = false;
+      setInstalledFlag(false);
+      installBtn.hidden = false;
+      installText.textContent = '';
+    }
   });
 
   window.addEventListener('appinstalled', () => {
     installed = true;
+    setInstalledFlag(true);
     deferredPrompt = null;
     installBtn.hidden = true;
     installText.innerHTML = '<span class="install-done">✅ 已送出安裝！圖示約需 1～2 分鐘才會出現在主畫面，請稍候。</span><br>若一直沒看到，請到手機的 App 清單找「觀霧導覽」。';
@@ -288,8 +307,13 @@ function setupInstall() {
   });
 
   if (isStandalone) {
+    setInstalledFlag(true);
     installBtn.hidden = true;
     installText.innerHTML = '<span class="install-done">✅ 已安裝到主畫面</span>';
+  } else if (installed && !isInApp) {
+    // 網頁版重新整理後，瀏覽器不會告訴網頁「已安裝」，改用之前記下的紀錄
+    installBtn.hidden = true;
+    installText.innerHTML = '<span class="install-done">✅ 已安裝到主畫面，請從桌面「觀霧導覽」圖示開啟。</span>';
   } else if (isInApp) {
     installBtn.textContent = '改用瀏覽器開啟';
     installText.textContent = '在 LINE、Facebook 等 App 裡無法安裝，請先改用手機瀏覽器開啟這個網頁。';
@@ -334,7 +358,7 @@ function setupInstall() {
           <li>往下滑，選「<strong>加入主畫面</strong>」</li>
           <li>點右上角「<strong>新增</strong>」</li>
         </ol>
-        <p>完成後，手機桌面會出現「觀霧導覽」圖示。</p>
+        <p>完成後，手機桌面會出現「觀霧導覽」圖示。已經加入過的話，直接從桌面圖示開啟即可。</p>
       `);
       return;
     }
