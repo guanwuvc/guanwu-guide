@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>觀霧林業的古往今來｜離線導覽</title>
   <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2d5a27">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="觀霧導覽">
   <style>
     :root { --forest-green: #2d5a27; --wood-brown: #8b5a2b; --bg-color: #f4f1ea; --highlight: #e8f0e6; }
     body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: var(--bg-color); color: #333; margin: 0; padding: 15px; line-height: 1.7; }
@@ -47,10 +51,46 @@
     .question-box { background: var(--highlight); color: var(--forest-green); padding: 12px 15px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; border-left: 4px solid var(--forest-green); }
     .section-title { font-weight: bold; color: var(--wood-brown); margin: 15px 0 5px 0; font-size: 16px; }
     
+    /* 問卷區塊與實心按鈕 */
+    .survey-box { background: var(--highlight); border: 2px solid var(--forest-green); border-radius: 12px; padding: 18px 16px; margin: 25px 0 15px 0; text-align: center; }
+    .survey-title { font-weight: bold; color: var(--forest-green); font-size: 18px; margin-bottom: 8px; }
+    .survey-box p { font-size: 15px; margin: 0 0 16px 0; text-align: left; }
+    .survey-btn { display: block; background: var(--forest-green); color: #fff; text-decoration: none; font-size: 18px; font-weight: bold; padding: 14px 20px; border-radius: 30px; box-shadow: 0 4px 8px rgba(45,90,39,0.3); }
+    .survey-btn:active { background: #1f4019; transform: translateY(1px); }
+    .survey-note { font-size: 13px; color: #555; margin-top: 12px; }
+
     details { background: #fafafa; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; padding: 10px; }
     summary { font-weight: bold; color: var(--wood-brown); cursor: pointer; outline: none; }
     .details-content { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc; font-size: 14px; color: #555; }
-    #status { text-align: center; font-size: 12px; color: #888; margin-bottom: 15px; }
+
+    /* 安裝與離線下載面板 */
+    .install-panel { background: #fff; border: 2px solid var(--wood-brown); border-radius: 12px; padding: 16px; margin-top: 15px; text-align: left; }
+    .install-title { font-weight: bold; color: var(--wood-brown); font-size: 17px; margin-bottom: 4px; }
+    .install-desc { font-size: 14px; color: #555; margin: 0 0 12px 0; }
+    .install-step { margin-top: 12px; }
+    .step-label { font-weight: bold; color: var(--forest-green); font-size: 15px; margin-bottom: 6px; }
+    .step-label span { font-weight: normal; color: #555; font-size: 14px; }
+    .progress { height: 10px; background: #e5e1d8; border-radius: 5px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0; background: var(--forest-green); transition: width 0.3s ease; }
+    .install-btn { display: block; width: 100%; background: var(--forest-green); color: #fff; border: 0; font-family: inherit; font-size: 17px; font-weight: bold; padding: 13px 20px; border-radius: 30px; box-shadow: 0 4px 8px rgba(45,90,39,0.3); cursor: pointer; }
+    .install-btn:active { background: #1f4019; transform: translateY(1px); }
+    .install-btn[hidden] { display: none; }
+    .install-note { font-size: 14px; color: #555; margin-top: 8px; }
+    .install-done { color: var(--forest-green); font-weight: bold; }
+    .install-error { color: #b03a2e; font-weight: bold; }
+    .install-faq { margin-top: 14px; }
+    .install-faq summary { font-size: 14px; }
+    .install-faq .details-content { line-height: 1.8; }
+    .status-line { text-align: center; font-size: 14px; color: var(--forest-green); background: var(--highlight); border-radius: 8px; padding: 8px; margin-top: 15px; }
+    .status-line[hidden], .install-panel[hidden] { display: none; }
+
+    /* 安裝步驟說明視窗 */
+    .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+    .guide-overlay[hidden] { display: none; }
+    .guide-box { background: #fff; border-radius: 12px; padding: 20px; max-width: 400px; width: 100%; text-align: left; }
+    .guide-box h3 { margin: 0 0 10px 0; color: var(--forest-green); font-size: 18px; }
+    .guide-box ol { padding-left: 22px; margin: 0 0 16px 0; font-size: 15px; }
+    .guide-box p { font-size: 14px; color: #555; }
   </style>
 </head>
 <body>
@@ -59,9 +99,38 @@
     <!-- 使用 poster.webp 作為主視覺海報 -->
     <img src="./images/poster.webp" alt="觀霧林業的古往今來" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); display: block;">
     
-    <!-- 隱藏狀態文字，不影響 app.js 邏輯 -->
-    <div id="status" style="display: none;"></div>
+    <!-- 安裝與離線下載面板：已安裝且下載完成時，改顯示一行狀態 -->
+    <section id="install-panel" class="install-panel">
+      <div class="install-title">📲 建議安裝，山區沒有網路也能聽</div>
+      <p class="install-desc">點「安裝」，約 3 分鐘後主畫面出現圖示。若直接使用網頁版，請留意手機收訊（站點① 可能沒有訊號）。</p>
+      <button id="install-btn" class="install-btn" type="button">安裝</button>
+      <div id="install-text" class="install-note"></div>
+      <div class="install-step">
+        <div class="step-label">離線內容　<span id="cache-text">準備中…</span></div>
+        <div class="progress"><div id="cache-bar" class="progress-bar"></div></div>
+      </div>
+      <details class="install-faq">
+        <summary>為什麼下載？佔空間嗎？怎麼移除？</summary>
+        <div class="details-content">
+          <strong>為什麼下載：</strong>先把語音和圖片存進手機，沒訊號時也能使用。打開網頁會自動下載，不點安裝也一樣。<br>
+          <strong>佔多少空間：</strong>約 30MB，大約是 10 張手機照片。<br>
+          <strong>怎麼移除：</strong><br>
+          ・已安裝：長按桌面「觀霧導覽」圖示，選「移除」或「刪除 App」。<br>
+          ・Android 網頁版：Chrome「⋮」→ 設定 → 網站設定 → 所有網站 → 找到本網站 → 清除並重設。<br>
+          ・iPhone 網頁版：設定 → App → Safari → 進階 → 網站資料 → 找到本網站刪除。
+        </div>
+      </details>
+    </section>
+    <div id="status-line" class="status-line" hidden>✅ 已安裝，斷網也能使用</div>
   </header>
+
+  <!-- 安裝步驟說明（手機沒有跳出安裝提示時使用） -->
+  <div id="install-guide" class="guide-overlay" hidden>
+    <div class="guide-box">
+      <div id="guide-content"></div>
+      <button id="guide-close" class="install-btn" type="button">我知道了</button>
+    </div>
+  </div>
 
   <div id="app-container"></div>
 

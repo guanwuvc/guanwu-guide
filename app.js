@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
         });
       }
-      
       body.innerHTML = html;
     }
     
@@ -97,10 +96,189 @@ document.addEventListener('DOMContentLoaded', () => {
     container.appendChild(card);
   });
 
-  // 註冊 Service Worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => document.getElementById('status').innerText = '✅ 已啟用離線瀏覽，斷網也可使用')
-      .catch(err => document.getElementById('status').innerText = '❌ 離線快取失敗');
-  }
+  // --- 問卷區塊 (放在所有卡片之後，不收合) ---
+  const survey = document.createElement('div');
+  survey.className = 'survey-box';
+  survey.innerHTML = `
+    <div class="survey-title">${surveyData.title}</div>
+    <p>${surveyData.content}</p>
+    <a class="survey-btn" href="${surveyData.url}" target="_blank" rel="noopener">${surveyData.buttonText}</a>
+    <div class="survey-note">${surveyData.note}</div>
+  `;
+
+  // 沒有網路時不開啟連結，改跳提示
+  survey.querySelector('.survey-btn').addEventListener('click', (e) => {
+    if (!navigator.onLine) {
+      e.preventDefault();
+      alert(surveyData.offlineMessage);
+    }
+  });
+  container.appendChild(survey);
+
+  setupInstall();
 });
+
+// ===== 安裝到主畫面 + 離線下載進度 =====
+function setupInstall() {
+  const panel = document.getElementById('install-panel');
+  const statusLine = document.getElementById('status-line');
+  const cacheText = document.getElementById('cache-text');
+  const cacheBar = document.getElementById('cache-bar');
+  const installBtn = document.getElementById('install-btn');
+  const installText = document.getElementById('install-text');
+  const guide = document.getElementById('install-guide');
+  const guideContent = document.getElementById('guide-content');
+
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isLine = /\bLine\//i.test(ua);
+  const isInApp = isLine || /FBAN|FBAV|Instagram|MicroMessenger/i.test(ua);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+  let cacheReady = false;
+  let installed = isStandalone;
+  let deferredPrompt = null;
+
+  // 已安裝且已下載完成：收起面板，只留一行狀態
+  function refreshPanel() {
+    const compact = installed && cacheReady;
+    panel.hidden = compact;
+    statusLine.hidden = !compact;
+  }
+
+  function showGuide(html) {
+    guideContent.innerHTML = html;
+    guide.hidden = false;
+  }
+  document.getElementById('guide-close').addEventListener('click', () => { guide.hidden = true; });
+
+  // --- ① 離線下載進度 ---
+  function setProgress(done, total) {
+    const percent = Math.round(done / total * 100);
+    cacheBar.style.width = percent + '%';
+    cacheText.textContent = `下載中 ${percent}%（${done} / ${total} 個檔案）`;
+  }
+  function setCacheDone() {
+    cacheReady = true;
+    cacheBar.style.width = '100%';
+    cacheText.innerHTML = '<span class="install-done">✅ 下載完成，斷網也能使用</span>';
+    refreshPanel();
+  }
+  function setCacheError(message) {
+    cacheText.innerHTML = `<span class="install-error">❌ ${message}</span>`;
+  }
+
+  if (!('serviceWorker' in navigator)) {
+    setCacheError(isInApp ? '這個 App 內的瀏覽器無法離線下載，請改用 Chrome 或 Safari 開啟' : '這個瀏覽器不支援離線下載，請改用 Chrome 或 Safari 開啟');
+  } else {
+    navigator.serviceWorker.addEventListener('message', event => {
+      const msg = event.data || {};
+      if (msg.type === 'cache-progress') setProgress(msg.done, msg.total);
+      if (msg.type === 'cache-complete') setCacheDone();
+      if (msg.type === 'cache-error') {
+        setCacheError('下載中斷，請確認網路後點「重新下載」');
+        cacheText.insertAdjacentHTML('beforeend', ' <a href="#" id="cache-retry">重新下載</a>');
+        document.getElementById('cache-retry').addEventListener('click', e => { e.preventDefault(); location.reload(); });
+      }
+    });
+    navigator.serviceWorker.startMessages();
+
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => {
+        if (reg.installing || reg.waiting) {
+          cacheText.textContent = '下載中…';
+        } else if (reg.active) {
+          setCacheDone();
+        }
+        // 有新版本時會重新下載，進度由 message 更新
+        reg.addEventListener('updatefound', () => {
+          cacheReady = false;
+          refreshPanel();
+          cacheText.textContent = '發現新版內容，下載中…';
+        });
+      })
+      .catch(() => {
+        setCacheError(navigator.onLine ? '離線下載失敗，請重新整理網頁再試一次' : '目前沒有網路，請到有訊號的地方再開啟網頁');
+      });
+  }
+
+  // --- ② 加入主畫面 ---
+  // Android Chrome / Edge / Samsung 會發出 beforeinstallprompt，可直接跳出安裝視窗
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installed = true;
+    deferredPrompt = null;
+    installBtn.hidden = true;
+    installText.innerHTML = '<span class="install-done">✅ 安裝完成！手機桌面上會出現「觀霧導覽」圖示，之後點圖示就能開啟。</span>';
+    refreshPanel();
+  });
+
+  if (isStandalone) {
+    installBtn.hidden = true;
+    installText.innerHTML = '<span class="install-done">✅ 已安裝到主畫面</span>';
+  } else if (isInApp) {
+    installBtn.textContent = '改用瀏覽器開啟';
+    installText.textContent = '在 LINE、Facebook 等 App 裡無法安裝，請先改用手機瀏覽器開啟這個網頁。';
+  }
+
+  installBtn.addEventListener('click', async () => {
+    // LINE 支援用網址參數直接跳到外部瀏覽器
+    if (isLine) {
+      const url = new URL(location.href);
+      url.searchParams.set('openExternalBrowser', '1');
+      location.href = url.toString();
+      return;
+    }
+    if (isInApp) {
+      showGuide(`
+        <h3>改用瀏覽器開啟</h3>
+        <ol>
+          <li>點畫面右上角（或右下角）的「⋯」選單</li>
+          <li>選「在瀏覽器中開啟」或「以外部瀏覽器開啟」</li>
+          <li>開啟後，再按一次「安裝」</li>
+        </ol>
+      `);
+      return;
+    }
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (outcome === 'accepted') {
+        installText.textContent = '安裝中，請稍候…';
+      } else {
+        installText.textContent = '已取消安裝。想安裝時，再按一次按鈕即可。';
+      }
+      return;
+    }
+    if (isIOS) {
+      showGuide(`
+        <h3>加入 iPhone 主畫面</h3>
+        <ol>
+          <li>用 <strong>Safari</strong> 開啟這個網頁</li>
+          <li>點畫面下方（或網址列旁）的「分享」按鈕 <strong>⬆️</strong></li>
+          <li>往下滑，選「<strong>加入主畫面</strong>」</li>
+          <li>點右上角「<strong>新增</strong>」</li>
+        </ol>
+        <p>完成後，手機桌面會出現「觀霧導覽」圖示。</p>
+      `);
+      return;
+    }
+    // 沒有跳出安裝提示的 Android 手機：改用瀏覽器選單手動安裝
+    showGuide(`
+      <h3>加入手機主畫面</h3>
+      <ol>
+        <li><strong>Chrome：</strong>點右上角「<strong>⋮</strong>」，選「<strong>安裝應用程式</strong>」或「<strong>加入主畫面</strong>」</li>
+        <li><strong>Samsung 網際網路：</strong>點下方「<strong>≡</strong>」，選「<strong>新增頁面至</strong>」→「<strong>主畫面</strong>」</li>
+        <li>確認安裝後，手機桌面會出現「觀霧導覽」圖示</li>
+      </ol>
+      <p>找不到選項的話，請改用 Chrome 開啟這個網頁。</p>
+    `);
+  });
+
+  refreshPanel();
+}
