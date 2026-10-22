@@ -13,7 +13,7 @@ const guideData = [
       <small style="color:#888;">*林務局已改制為農業部林業及自然保育署</small></p>
       <hr style="border:0; border-top:1px solid #ddd; margin:15px 0;">
       <p><strong>【建議動線】</strong><br>
-      <strong>一日遊：</strong>上午走檜山巨木群步道（約3.5小時）→ 中午在觀霧山莊用餐（約1小時）→ 下午走大鹿林道西線，再回遊客中心（約1.5小時）。<br>
+      <strong>一日遊：</strong>上午走檜山巨木群步道（約3.5小時）→榮民紀念碑 → 中午在觀霧山莊用餐（約1小時）→ 下午走大鹿林道西線，再回遊客中心（約1.5小時）。<br>
       <strong>半日遊：</strong>只到檜山巨木群步道「入口」，對照紙本空間圖完成站點一；折返後依序前往榮民紀念碑、觀霧山莊、大鹿林道西線，再回遊客中心。自備交通工具約1.5小時，步行約2.5小時。</p>
     `
   },
@@ -145,7 +145,7 @@ const guideData = [
     title: "站點五｜遊客中心",
     image: "./images/station5.webp",
     mainAudioSrc: "./audio/station5_main.mp3",
-    meta: "代表年代：伐木之後～現在｜ 預計約 3 分鐘",
+    meta: "代表年代： 1995 起至今｜ 預計約 5 分鐘",
     question: "伐木停止之後，山上的工作變成了什麼？",
     observation: "回到遊客中心，戶外的旅程在這裡結束。1984年12月31日，觀霧工作站生產了最後一批木材，觀霧的伐木時代正式劃下句點。",
     historyTitle: "🪚 這裡發生過什麼",
