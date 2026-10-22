@@ -1,6 +1,6 @@
 // sw.js
 // ⚠️ 每次修改任何檔案（文字、圖片、音檔）後，都要把版本號 +1，手機才會下載新版
-const CACHE_NAME = 'guanwu-guide-v11';
+const CACHE_NAME = 'guanwu-guide-v12';
 const urlsToCache = [
   './',
   './index.html',
@@ -55,25 +55,52 @@ async function fetchWithRetry(url) {
   throw new Error('下載失敗：' + url);
 }
 
+// 逐一下載檔案並回報進度；urls 為要下載的檔案，已存在的檔案數算進 done 起始值
+async function downloadFiles(urls) {
+  const cache = await caches.open(CACHE_NAME);
+  const total = urlsToCache.length;
+  let done = total - urls.length;
+  broadcast({ type: 'cache-progress', done, total });
+  try {
+    for (const url of urls) {
+      await cache.put(url, await fetchWithRetry(url));
+      done++;
+      broadcast({ type: 'cache-progress', done, total });
+    }
+  } catch (err) {
+    broadcast({ type: 'cache-error', done, total });
+    throw err;
+  }
+  broadcast({ type: 'cache-complete', total });
+}
+
 // 1. 安裝階段：逐一下載所有檔案到手機裡，並回報進度
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    const total = urlsToCache.length;
-    let done = 0;
     try {
-      for (const url of urlsToCache) {
-        await cache.put(url, await fetchWithRetry(url));
-        done++;
-        broadcast({ type: 'cache-progress', done, total });
-      }
+      await downloadFiles(urlsToCache);
     } catch (err) {
-      broadcast({ type: 'cache-error', done, total });
       await caches.delete(CACHE_NAME);
       throw err; // 讓安裝失敗，下次開啟網頁會重新下載
     }
-    broadcast({ type: 'cache-complete', total });
     await self.skipWaiting(); // 立刻接管網頁，不需等待重整
+  })());
+});
+
+// 網頁要求檢查時，確認檔案都還在；缺少的（例如被刪除或被系統清掉）就補下載
+self.addEventListener('message', event => {
+  if (!event.data || event.data.type !== 'check-cache') return;
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const missing = [];
+    for (const url of urlsToCache) {
+      if (!(await cache.match(url))) missing.push(url);
+    }
+    if (missing.length === 0) {
+      broadcast({ type: 'cache-complete', total: urlsToCache.length });
+    } else {
+      await downloadFiles(missing).catch(() => {});
+    }
   })());
 });
 

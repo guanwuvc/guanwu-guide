@@ -200,7 +200,9 @@ function setupInstall() {
         if (reg.installing || reg.waiting) {
           cacheText.textContent = '下載中…';
         } else if (reg.active) {
-          setCacheDone();
+          // 不直接當作完成：請背景程式確認檔案都在，缺的會補下載並回報進度
+          cacheText.textContent = '檢查離線內容…';
+          reg.active.postMessage({ type: 'check-cache' });
         }
         // 有新版本時會重新下載，進度由 message 更新
         reg.addEventListener('updatefound', () => {
@@ -228,7 +230,11 @@ function setupInstall() {
 
   function redownload() {
     setOfflineRemoved(false);
-    location.reload(); // 重新開啟網頁時會自動開始下載
+    cacheBar.style.width = '0';
+    cacheText.textContent = '下載中…';
+    cleanupBtn.textContent = '刪除離線資料';
+    cleanupText.textContent = '';
+    startDownload();
   }
 
   function showRemoved() {
@@ -276,7 +282,7 @@ function setupInstall() {
     installed = true;
     deferredPrompt = null;
     installBtn.hidden = true;
-    installText.innerHTML = '<span class="install-done">✅ 安裝完成！手機桌面上會出現「觀霧導覽」圖示，之後點圖示就能開啟。</span>';
+    installText.innerHTML = '<span class="install-done">✅ 已送出安裝！圖示約需 1～2 分鐘才會出現在主畫面，請稍候。</span><br>若一直沒看到，請到手機的 App 清單找「觀霧導覽」。';
     refreshPanel();
   });
 
@@ -312,7 +318,7 @@ function setupInstall() {
       const { outcome } = await deferredPrompt.userChoice;
       deferredPrompt = null;
       if (outcome === 'accepted') {
-        installText.textContent = '安裝中，請稍候…';
+        installText.textContent = '安裝中，圖示約 1～2 分鐘後會出現在主畫面…';
       } else {
         installText.textContent = '已取消安裝。想安裝時，再按一次按鈕即可。';
       }
