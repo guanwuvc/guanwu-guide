@@ -144,7 +144,8 @@ function setupInstall() {
 
   // 已安裝且已下載完成：收起面板，只留一行狀態
   function refreshPanel() {
-    const compact = installed && cacheReady;
+    // 只有從主畫面圖示開啟時才收起；在網頁上剛安裝完，要留著面板顯示「已送出安裝」的提示
+    const compact = isStandalone && cacheReady;
     panel.hidden = compact;
     statusLine.hidden = !compact;
   }
