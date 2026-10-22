@@ -128,6 +128,9 @@ function setupInstall() {
   const installText = document.getElementById('install-text');
   const guide = document.getElementById('install-guide');
   const guideContent = document.getElementById('guide-content');
+  const cleanupBtn = document.getElementById('cleanup-btn');
+  const cleanupText = document.getElementById('cleanup-text');
+  const REMOVED_KEY = 'guanwu-offline-removed';
 
   const ua = navigator.userAgent;
   const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -183,6 +186,15 @@ function setupInstall() {
     });
     navigator.serviceWorker.startMessages();
 
+    if (isOfflineRemoved()) {
+      // 遊客按過「刪除離線資料」：不自動下載，等他按「重新下載」
+      showRemoved();
+    } else {
+      startDownload();
+    }
+  }
+
+  function startDownload() {
     navigator.serviceWorker.register('sw.js')
       .then(reg => {
         if (reg.installing || reg.waiting) {
@@ -201,6 +213,57 @@ function setupInstall() {
         setCacheError(navigator.onLine ? '離線下載失敗，請重新整理網頁再試一次' : '目前沒有網路，請到有訊號的地方再開啟網頁');
       });
   }
+
+  // --- 刪除離線資料（頁面最下方） ---
+  // 用 localStorage 記住「已刪除」，避免下次開啟網頁又自動下載
+  function isOfflineRemoved() {
+    try { return localStorage.getItem(REMOVED_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setOfflineRemoved(removed) {
+    try {
+      if (removed) localStorage.setItem(REMOVED_KEY, '1');
+      else localStorage.removeItem(REMOVED_KEY);
+    } catch (e) {}
+  }
+
+  function redownload() {
+    setOfflineRemoved(false);
+    location.reload(); // 重新開啟網頁時會自動開始下載
+  }
+
+  function showRemoved() {
+    cacheReady = false;
+    cacheBar.style.width = '0';
+    cacheText.innerHTML = '已刪除離線資料　<a href="#" id="cache-redownload">重新下載</a>';
+    document.getElementById('cache-redownload').addEventListener('click', e => { e.preventDefault(); redownload(); });
+    cleanupBtn.textContent = '重新下載離線資料';
+    cleanupText.textContent = '目前沒有存離線資料，需要網路才能使用。';
+    refreshPanel();
+  }
+
+  cleanupBtn.addEventListener('click', async () => {
+    if (isOfflineRemoved()) {
+      redownload();
+      return;
+    }
+    if (!confirm('確定要刪除存在手機裡的離線資料（約 30MB）嗎？\n刪除後，沒有網路時就無法使用導覽。')) return;
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(reg => reg.unregister()));
+      }
+      if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map(name => caches.delete(name)));
+      }
+      setOfflineRemoved(true);
+      showRemoved();
+      cleanupText.innerHTML = '<span class="install-done">✅ 已刪除離線資料。</span>' +
+        (installed ? '<br>主畫面的「觀霧導覽」圖示，請長按後選「移除」。' : '');
+    } catch (e) {
+      cleanupText.innerHTML = '<span class="install-error">❌ 刪除失敗，請重新整理網頁再試一次。</span>';
+    }
+  });
 
   // --- ② 加入主畫面 ---
   // Android Chrome / Edge / Samsung 會發出 beforeinstallprompt，可直接跳出安裝視窗

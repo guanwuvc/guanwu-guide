@@ -52,12 +52,10 @@
     .section-title { font-weight: bold; color: var(--wood-brown); margin: 15px 0 5px 0; font-size: 16px; }
     
     /* 問卷區塊與實心按鈕 */
-    .survey-box { background: var(--highlight); border: 2px solid var(--forest-green); border-radius: 12px; padding: 18px 16px; margin: 25px 0 15px 0; text-align: center; }
-    .survey-title { font-weight: bold; color: var(--forest-green); font-size: 18px; margin-bottom: 8px; }
-    .survey-box p { font-size: 15px; margin: 0 0 16px 0; text-align: left; }
-    .survey-btn { display: block; background: var(--forest-green); color: #fff; text-decoration: none; font-size: 18px; font-weight: bold; padding: 14px 20px; border-radius: 30px; box-shadow: 0 4px 8px rgba(45,90,39,0.3); }
-    .survey-btn:active { background: #1f4019; transform: translateY(1px); }
-    .survey-note { font-size: 13px; color: #555; margin-top: 12px; }
+    .survey-box { background: var(--highlight); border-radius: 12px; padding: 14px 16px; margin: 20px 0 15px 0; text-align: center; }
+    .survey-title { font-weight: bold; color: var(--forest-green); font-size: 16px; margin-bottom: 6px; }
+    .survey-box p { font-size: 14px; margin: 0 0 12px 0; text-align: left; }
+    .survey-note { font-size: 12px; color: #555; margin-top: 10px; }
 
     details { background: #fafafa; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; padding: 10px; }
     summary { font-weight: bold; color: var(--wood-brown); cursor: pointer; outline: none; }
@@ -72,8 +70,9 @@
     .step-label span { font-weight: normal; color: #555; font-size: 14px; }
     .progress { height: 10px; background: #e5e1d8; border-radius: 5px; overflow: hidden; }
     .progress-bar { height: 100%; width: 0; background: var(--forest-green); transition: width 0.3s ease; }
-    .install-btn { display: block; width: 100%; background: var(--forest-green); color: #fff; border: 0; font-family: inherit; font-size: 17px; font-weight: bold; padding: 13px 20px; border-radius: 30px; box-shadow: 0 4px 8px rgba(45,90,39,0.3); cursor: pointer; }
-    .install-btn:active { background: #1f4019; transform: translateY(1px); }
+    /* 輕巧空心按鈕（安裝、問卷、說明視窗共用） */
+    .install-btn, .survey-btn { display: inline-block; width: auto; padding: 8px 22px; font-family: inherit; font-size: 15px; font-weight: 500; line-height: 1.4; border-radius: 999px; border: 1.5px solid currentColor; background: transparent; color: var(--forest-green); text-decoration: none; cursor: pointer; }
+    .install-btn:active, .survey-btn:active { background: rgba(45, 90, 39, 0.08); }
     .install-btn[hidden] { display: none; }
     .install-note { font-size: 14px; color: #555; margin-top: 8px; }
     .install-done { color: var(--forest-green); font-weight: bold; }
@@ -81,6 +80,13 @@
     .install-faq { margin-top: 14px; }
     .install-faq summary { font-size: 14px; }
     .install-faq .details-content { line-height: 1.8; }
+
+    /* 刪除離線資料（頁面最下方，低調處理） */
+    .cleanup-box { text-align: center; font-size: 13px; color: #777; margin: 30px 0 20px 0; padding-top: 16px; border-top: 1px solid #ddd; }
+    .cleanup-box p { margin: 0 0 8px 0; }
+    .cleanup-btn { font-family: inherit; font-size: 13px; color: #777; background: transparent; border: 1px solid #bbb; border-radius: 999px; padding: 6px 16px; cursor: pointer; }
+    .cleanup-btn:active { background: rgba(0, 0, 0, 0.05); }
+    .cleanup-note { margin-top: 8px; }
     .status-line { text-align: center; font-size: 14px; color: var(--forest-green); background: var(--highlight); border-radius: 8px; padding: 8px; margin-top: 15px; }
     .status-line[hidden], .install-panel[hidden] { display: none; }
 
@@ -101,8 +107,8 @@
     
     <!-- 安裝與離線下載面板：已安裝且下載完成時，改顯示一行狀態 -->
     <section id="install-panel" class="install-panel">
-      <div class="install-title">📲 建議安裝，山區沒有網路也能聽</div>
-      <p class="install-desc">點「安裝」，約 3 分鐘後主畫面出現圖示。若直接使用網頁版，請留意手機收訊（站點① 可能沒有訊號）。</p>
+      <div class="install-title">📲 出發前，先把導覽存進手機</div>
+      <p class="install-desc">山裡的收訊不穩定，站點① 附近可能完全沒有訊號。點「安裝」，約 3 分鐘後主畫面會出現圖示，之後沒有網路也能聽。</p>
       <button id="install-btn" class="install-btn" type="button">安裝</button>
       <div id="install-text" class="install-note"></div>
       <div class="install-step">
@@ -110,14 +116,13 @@
         <div class="progress"><div id="cache-bar" class="progress-bar"></div></div>
       </div>
       <details class="install-faq">
-        <summary>為什麼下載？佔空間嗎？怎麼移除？</summary>
+        <summary>不想安裝？佔空間嗎？怎麼移除？</summary>
         <div class="details-content">
-          <strong>為什麼下載：</strong>先把語音和圖片存進手機，沒訊號時也能使用。打開網頁會自動下載，不點安裝也一樣。<br>
+          <strong>不安裝也可以：</strong>直接使用網頁版，開啟後語音和圖片會自動下載到手機。請在有訊號的地方先開啟，等上方進度完成再出發。<br>
           <strong>佔多少空間：</strong>約 30MB，大約是 10 張手機照片。<br>
           <strong>怎麼移除：</strong><br>
-          ・已安裝：長按桌面「觀霧導覽」圖示，選「移除」或「刪除 App」。<br>
-          ・Android 網頁版：Chrome「⋮」→ 設定 → 網站設定 → 所有網站 → 找到本網站 → 清除並重設。<br>
-          ・iPhone 網頁版：設定 → App → Safari → 進階 → 網站資料 → 找到本網站刪除。
+          ・已安裝：長按主畫面「觀霧導覽」圖示，選「移除」或「刪除 App」。<br>
+          ・網頁版：點本頁最下方的「刪除離線資料」。
         </div>
       </details>
     </section>
@@ -133,6 +138,13 @@
   </div>
 
   <div id="app-container"></div>
+
+  <!-- 刪除離線資料（頁面最下方） -->
+  <section class="cleanup-box">
+    <p>不再需要導覽時，可以刪除存在手機裡的離線資料（約 30MB）。</p>
+    <button id="cleanup-btn" class="cleanup-btn" type="button">刪除離線資料</button>
+    <div id="cleanup-text" class="cleanup-note"></div>
+  </section>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
