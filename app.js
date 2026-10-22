@@ -239,7 +239,8 @@ function setupInstall() {
         reg.addEventListener('updatefound', () => {
           cacheReady = false;
           refreshPanel();
-          cacheText.textContent = '發現新版內容，下載中…';
+          // 第一次下載也會觸發 updatefound，只有原本已有舊版時才算「新版」
+          cacheText.textContent = reg.active ? '發現新版內容，下載中…' : '下載中…';
         });
       })
       .catch(() => {
@@ -331,14 +332,25 @@ function setupInstall() {
     installText.innerHTML = '<span class="install-done">✅ 已安裝到主畫面</span>';
   } else if (installed && !isInApp) {
     // 網頁版重新整理後，瀏覽器不會告訴網頁「已安裝」，改用之前記下的紀錄
+    // 紀錄可能過時（安裝沒完成、App 已解除安裝），所以保留「重新安裝」的入口
     installBtn.hidden = true;
-    installText.innerHTML = '<span class="install-done">✅ 已安裝到主畫面，請從桌面「觀霧導覽」圖示開啟。</span>';
+    installText.innerHTML = '<span class="install-done">✅ 已安裝到主畫面，請從桌面「觀霧導覽」圖示開啟。</span><br><a href="#" id="install-again">沒看到圖示？重新安裝</a>';
+    document.getElementById('install-again').addEventListener('click', e => {
+      e.preventDefault();
+      installed = false;
+      setInstalledFlag(false);
+      installBtn.hidden = false;
+      installText.textContent = '';
+      handleInstallClick();
+    });
   } else if (isInApp) {
     installBtn.textContent = '改用瀏覽器開啟';
     installText.textContent = '在 LINE、Facebook 等 App 裡無法安裝，請先改用手機瀏覽器開啟這個網頁。';
   }
 
-  installBtn.addEventListener('click', async () => {
+  installBtn.addEventListener('click', handleInstallClick);
+
+  async function handleInstallClick() {
     // LINE 支援用網址參數直接跳到外部瀏覽器
     if (isLine) {
       const url = new URL(location.href);
@@ -362,7 +374,8 @@ function setupInstall() {
       const { outcome } = await deferredPrompt.userChoice;
       deferredPrompt = null;
       if (outcome === 'accepted') {
-        installText.textContent = '安裝中，圖示約 1～2 分鐘後會出現在主畫面…';
+        // appinstalled 可能比這裡先發生，已顯示「已送出安裝」就不要覆蓋
+        if (!installed) installText.textContent = '安裝中，圖示約 1～2 分鐘後會出現在主畫面…';
       } else {
         installText.textContent = '已取消安裝。想安裝時，再按一次按鈕即可。';
       }
@@ -391,7 +404,7 @@ function setupInstall() {
       </ol>
       <p>找不到選項的話，請改用 Chrome 開啟這個網頁。</p>
     `);
-  });
+  }
 
   refreshPanel();
 }
