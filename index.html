@@ -91,6 +91,7 @@
     .cleanup-btn { font-family: inherit; font-size: 13px; color: #777; background: transparent; border: 1px solid #bbb; border-radius: 999px; padding: 6px 16px; cursor: pointer; }
     .cleanup-btn:active { background: rgba(0, 0, 0, 0.05); }
     .cleanup-note { margin-top: 8px; }
+    .cleanup-box .privacy-note { margin: 16px 0 0 0; font-size: 12px; color: #999; }
     .status-line { text-align: center; font-size: 14px; color: var(--forest-green); background: var(--highlight); border-radius: 8px; padding: 8px; margin-top: 15px; }
     .status-line[hidden], .install-panel[hidden] { display: none; }
 
@@ -149,9 +150,13 @@
     <p>不再需要導覽時，可以刪除存在手機裡的離線資料（約 30MB）。</p>
     <button id="cleanup-btn" class="cleanup-btn" type="button">刪除離線資料</button>
     <div id="cleanup-text" class="cleanup-note"></div>
+    <p class="privacy-note">本網站使用不含個人資料的匿名統計。</p>
   </section>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
+  <!-- GoatCounter 匿名統計（不要加進 sw.js 的 urlsToCache） -->
+  <script data-goatcounter="https://guanwuvc.goatcounter.com/count"
+          async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>

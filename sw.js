@@ -1,6 +1,6 @@
 // sw.js
 // ⚠️ 每次修改任何檔案（文字、圖片、音檔）後，都要把版本號 +1，手機才會下載新版
-const CACHE_NAME = 'guanwu-guide-v19';
+const CACHE_NAME = 'guanwu-guide-v20';
 const urlsToCache = [
   './',
   './index.html',

@@ -1,3 +1,46 @@
+// ===== GoatCounter 匿名統計 =====
+// 統計失敗（被廣告阻擋、沒網路）時不影響網站，所有呼叫都包在 try/catch 裡
+// count.js 是 async 載入，可能比這裡晚到，所以每 0.5 秒檢查一次，最多等 10 秒
+function track(name, title) {
+  try {
+    var send = function () {
+      window.goatcounter.count({ path: name, title: title || name, event: true });
+    };
+    if (window.goatcounter && window.goatcounter.count) { send(); return; }
+    var n = 0;
+    var t = setInterval(function () {
+      if (window.goatcounter && window.goatcounter.count) { clearInterval(t); send(); }
+      else if (++n > 20) { clearInterval(t); }
+    }, 500);
+  } catch (e) {}
+}
+// 同一支手機只記一次
+function trackOnce(name, key) {
+  try {
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+  } catch (e) {}
+  track(name);
+}
+// 同一次開啟只記一次
+function trackSession(name) {
+  try {
+    if (sessionStorage.getItem('gc_' + name)) return;
+    sessionStorage.setItem('gc_' + name, '1');
+  } catch (e) {}
+  track(name);
+}
+
+// 語音播放：play 不會冒泡，用 capture 監聽；事件名稱取音檔檔名，例如 play-station1_main
+document.addEventListener('play', function (e) {
+  try {
+    var a = e.target;
+    if (!a || a.tagName !== 'AUDIO') return;
+    var src = (a.currentSrc || a.src || '').split('/').pop().replace(/\.mp3.*$/, '');
+    if (src) trackSession('play-' + src);
+  } catch (err) {}
+}, true);
+
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('app-container');
 
@@ -111,7 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!navigator.onLine) {
       e.preventDefault();
       alert(surveyData.offlineMessage);
+      return;
     }
+    // 只記真的導向問卷頁的點擊，離線被擋下的不記
+    track('survey-click');
   });
   container.appendChild(survey);
 
@@ -189,7 +235,11 @@ function setupInstall() {
     navigator.serviceWorker.addEventListener('message', event => {
       const msg = event.data || {};
       if (msg.type === 'cache-progress') setProgress(msg.done, msg.total);
-      if (msg.type === 'cache-complete') setCacheDone();
+      if (msg.type === 'cache-complete') {
+        setCacheDone();
+        // 每次開啟檢查快取也會收到 cache-complete，所以同一支手機只記一次
+        trackOnce('cache-complete', 'gc_cache_done');
+      }
       if (msg.type === 'cache-error') {
         setCacheError('下載中斷，請確認網路後點「重新下載」');
         cacheText.insertAdjacentHTML('beforeend', ' <a href="#" id="cache-retry">重新下載</a>');
@@ -318,6 +368,7 @@ function setupInstall() {
   });
 
   window.addEventListener('appinstalled', () => {
+    track('app-installed');
     installed = true;
     setInstalledFlag(true);
     deferredPrompt = null;
@@ -327,6 +378,7 @@ function setupInstall() {
   });
 
   if (isStandalone) {
+    trackSession('open-from-homescreen');
     setInstalledFlag(true);
     installBtn.hidden = true;
     installText.innerHTML = '<span class="install-done">✅ 已安裝到主畫面</span>';
@@ -348,7 +400,10 @@ function setupInstall() {
     installText.textContent = '在 LINE、Facebook 等 App 裡無法安裝，請先改用手機瀏覽器開啟這個網頁。';
   }
 
-  installBtn.addEventListener('click', handleInstallClick);
+  installBtn.addEventListener('click', () => {
+    track('install-click');
+    handleInstallClick();
+  });
 
   async function handleInstallClick() {
     // LINE 支援用網址參數直接跳到外部瀏覽器
